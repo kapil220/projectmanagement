@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: admin
+      POSTGRES_USER: postgres
+      POSTGRES_DB: project_management
+    ports:
+      - '5432:5432'
+
+  app:
+    build: .
+    environment:
+      - DATABASE_URL=postgresql://postgres:admin@db:5432/project_management
+    ports:
+      - '3000:3000'
+    depends_on:
+      - db
+    env_file:
+      - .env  # Ensure this line is added

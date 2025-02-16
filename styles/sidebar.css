@@ -1,0 +1,23 @@
+/* sidebar.css */
+.sidebar-container {
+  overflow-y: scroll; /* Forces the scrollbar to always be visible */
+}
+
+.sidebar-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar-container::-webkit-scrollbar-track {
+  background: #e7e7eb;
+  border-radius: 8px;
+}
+
+.sidebar-container::-webkit-scrollbar-thumb {
+  background-color: #1c1917;
+  border-radius: 10px;
+  border: 1px solid #1c1917;
+}
+
+.sidebar-container::-webkit-scrollbar-thumb:hover {
+  background-color: #e7e7eb;
+}
