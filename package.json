@@ -42,6 +42,8 @@
     "@retracedhq/logs-viewer": "2.7.4",
     "@retracedhq/retraced": "0.7.13",
     "@sentry/nextjs": "8.11.0",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.2",
     "@tailwindcss/typography": "0.5.13",
     "@types/express": "^4.17.21",
     "@types/socket.io": "^3.0.2",

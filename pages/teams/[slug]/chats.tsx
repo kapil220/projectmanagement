@@ -9,6 +9,11 @@ import { User, Message, ChatGroup, Project,LastReadTime } from '@/components/cha
 //import { json } from 'stream/consumers';
 import { useSession } from 'next-auth/react';
 import axios from 'axios';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 const Chat: React.FC = () => {
   const {
     data: session,
@@ -194,7 +199,36 @@ const Chat: React.FC = () => {
   useEffect(() => {
     fetchMessages();
     const interval = setInterval(fetchMessages, 3000);
-    return () => clearInterval(interval);
+
+    let subscription: any = null;
+    if (supabase && activeChannel.id) {
+      console.log('Subscribing to Supabase Realtime for channel:', activeChannel.id);
+      subscription = supabase
+        .channel(`chat-history-changes-${activeChannel.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'ChatHistory',
+            filter: `chat_id=eq.${activeChannel.id}`,
+          },
+          (payload) => {
+            console.log('Realtime message insert detected!', payload);
+            fetchMessages();
+          }
+        )
+        .subscribe((status) => {
+          console.log(`Realtime subscription status for channel ${activeChannel.id}:`, status);
+        });
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (supabase && subscription) {
+        supabase.removeChannel(subscription);
+      }
+    };
    }, [activeChannel]);
   useEffect(() => {
     if (searchQuery.trim() === '') {
