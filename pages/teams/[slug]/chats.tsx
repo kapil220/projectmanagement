@@ -193,6 +193,8 @@ const Chat: React.FC = () => {
   }, [chatMessages]);
   useEffect(() => {
     fetchMessages();
+    const interval = setInterval(fetchMessages, 3000);
+    return () => clearInterval(interval);
    }, [activeChannel]);
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -312,13 +314,29 @@ const Chat: React.FC = () => {
     }));
     console.log('Updated chat messages:', chatMessages[activeChannel.id]);
 
+    // Persist message to database via REST endpoint
+    const baseUrl = process.env.NEXT_PUBLIC_CHAT_URL || '';
+    axios.post(`${baseUrl}/api/messages/${activeChannel.id}`, {
+      message: content.content
+    })
+    .then(response => {
+      console.log('Message saved successfully via REST:', response.data);
+    })
+    .catch(err => {
+      console.error('Failed to save message via REST:', err);
+    });
+
     if (socket.current && newMessage) {
       const inputBody = {
         event: 'chat',
         message: newMessage,
         channel_id: activeChannel.id,
       };
-      socket.current.send(JSON.stringify(inputBody));
+      try {
+        socket.current.send(JSON.stringify(inputBody));
+      } catch (err) {
+        console.warn('Socket connection unavailable, utilizing REST API fallback', err);
+      }
       setMessage('');
     }
   };
@@ -372,9 +390,10 @@ const Chat: React.FC = () => {
   const fetchMessages = async () => {
     console.log('In fetchMessages-------');
     try {
-      console.log('CHAT_PUBLIC_URL:', process.env.NEXT_PUBLIC_CHAT_URL);
+      const baseUrl = process.env.NEXT_PUBLIC_CHAT_URL || '';
+      console.log('CHAT_PUBLIC_URL:', baseUrl);
 
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_CHAT_URL}/api/messages/${activeChannel.id}`);
+      const response = await axios.get(`${baseUrl}/api/messages/${activeChannel.id}`);
       setChatMessages(prevMessages => ({
         ...prevMessages,
         [activeChannel.id]: response.data,

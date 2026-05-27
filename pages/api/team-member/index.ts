@@ -79,16 +79,18 @@ const getRecentUser = async (req: NextApiRequest, res: NextApiResponse) => {
         console.log("Checking messages for userId:", userId);
         console.log("Checking messages after:", record.lastReadTime);
 
-        const response = await axios.get(`http://localhost:3000/api/unread?user_id=${userId}&channel_id=${record.channelId}&last_read_time=${record.lastReadTime}`);
-
-        console.log("Repsonse for channel :", record.channelId,  response.data);
-        if (!response.data) {
-            continue;
+        try {
+          const unreadCount = await prisma.chatHistory.count({
+            where: {
+              chat_id: record.channelId,
+              sender_id: { not: userId },
+              timestamp: { gt: new Date(record.lastReadTime) },
+            },
+          });
+          recentSenders.push({ unreadCount, channel_id: record.channelId });
+        } catch (dbError) {
+          console.error(`Error counting unread for channel ${record.channelId}:`, dbError);
         }
-        recentSenders.push(response.data);
-        console.log("Recent senders 1", recentSenders);
-        
-        console.log("Recent senders", recentSenders);
       }
       res.status(200).json({ 'senders': recentSenders });
     } catch (error) {
