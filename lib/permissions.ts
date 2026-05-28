@@ -116,4 +116,10 @@ export const permissions: RolePermissions = {
       actions: ['read', 'leave'],
     },
   ],
+  GUEST: [
+    {
+      resource: 'team',
+      actions: ['read'],
+    },
+  ],
 };
