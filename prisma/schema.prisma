@@ -12,6 +12,7 @@ enum Role {
   ADMIN
   OWNER
   MEMBER
+  GUEST
 }
 
 model Account {
@@ -117,6 +118,7 @@ model Invitation {
   updatedAt      DateTime @default(now())
   sentViaEmail   Boolean  @default(true)
   allowedDomains String[] @default([])
+  projectId      String?  // if set, this is a project-scoped invite (GUEST)
 
   user User @relation(fields: [invitedBy], references: [id], onDelete: Cascade)
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
