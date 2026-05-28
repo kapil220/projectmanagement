@@ -115,26 +115,43 @@ const TeamTab = ({ activeTab, team, heading, teamFeatures }: TeamTabProps) => {
 
   return (
     <div className="flex flex-col pb-6">
-      <h2 className="text-xl font-semibold mb-2">
-        {heading ? heading : team.name}
-      </h2>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white bg-gradient-to-r from-gray-950 to-gray-700 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+            {heading ? heading : team.name}
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Manage your workspace preferences, members, integration tools and security settings.
+          </p>
+        </div>
+      </div>
+
       <nav
-        className=" flex flex-wrap border-b border-gray-300"
+        className="flex flex-wrap gap-2 p-1.5 bg-gray-50/80 dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl border border-gray-200/80 dark:border-zinc-800/80"
         aria-label="Tabs"
       >
         {navigations.map((menu) => {
+          const Icon = menu.icon;
           return (
             <Link
               href={menu.href}
               key={menu.href}
               className={classNames(
-                'inline-flex items-center border-b-2 py-2 md-py-4 mr-5 text-sm font-medium',
+                'inline-flex items-center px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-300 gap-2 group',
                 menu.active
-                  ? 'border-gray-900 text-gray-700 dark:text-gray-100'
-                  : 'border-transparent text-gray-500 hover:border-gray-300  hover:text-gray-700 hover:dark:text-gray-100'
+                  ? 'bg-orange-500/10 text-orange-600 border border-orange-500/20 dark:bg-orange-500/15 dark:text-orange-400 dark:border-orange-500/30 shadow-sm shadow-orange-500/5'
+                  : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-zinc-800/50 border border-transparent'
               )}
             >
-              {menu.name}
+              <Icon
+                className={classNames(
+                  'h-4 w-4 transition-transform duration-300 group-hover:scale-110',
+                  menu.active
+                    ? 'text-orange-500 dark:text-orange-400 stroke-[2]'
+                    : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200 stroke-[1.5]'
+                )}
+              />
+              <span>{menu.name}</span>
             </Link>
           );
         })}
@@ -144,3 +161,4 @@ const TeamTab = ({ activeTab, team, heading, teamFeatures }: TeamTabProps) => {
 };
 
 export default TeamTab;
+

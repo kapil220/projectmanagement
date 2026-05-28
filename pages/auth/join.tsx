@@ -50,7 +50,7 @@ const Signup: NextPageWithLayout<
       <Head>
         <title>{t('sign-up-title')}</title>
       </Head>
-      <div className="rounded p-6 border">
+      <div className="space-y-4">
         <div className="flex gap-2 flex-wrap">
           {authProviders.github && <GithubButton />}
           {authProviders.google && <GoogleButton />}
@@ -72,11 +72,11 @@ const Signup: NextPageWithLayout<
           </>
         )}
       </div>
-      <p className="text-center text-sm text-gray-600 mt-3">
+      <p className="text-center text-sm text-gray-600 mt-4">
         {t('already-have-an-account')}
         <Link
           href={`/auth/login/${params}`}
-          className="font-medium text-primary hover:text-[color-mix(in_oklab,oklch(var(--p)),black_7%)]"
+          className="font-semibold text-orange-600 hover:text-orange-500 transition-colors"
         >
           &nbsp;{t('sign-in')}
         </Link>

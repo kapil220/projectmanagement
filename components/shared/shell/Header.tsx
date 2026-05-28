@@ -16,10 +16,19 @@ import {
   DocumentDuplicateIcon,
   ArchiveBoxIcon,
   TrashIcon,
+  BuildingOfficeIcon,
+  UserGroupIcon,
+  CreditCardIcon,
+  KeyIcon,
+  GlobeAltIcon,
+  ArrowPathRoundedSquareIcon,
+  PlusIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import Brand from './Brand';
 import { useViewMode } from '../../../context/viewmodecontext';
 import { slug } from '@/lib/zod/primitives';
+import useTeams from 'hooks/useTeams';
 
 const initialNotifications = [
   {
@@ -49,6 +58,13 @@ const Header: React.FC = () => {
   const { t } = useTranslation('common');
   const router = useRouter();
   const { slug } = router.query;
+  const { teams } = useTeams();
+
+  const currentTeam = (teams || []).find(
+    (team) => team.slug === slug
+  );
+  const displayTeamName = currentTeam?.name || slug;
+
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [selectedLink, setSelectedLink] = useState<string>('');
   const [viewDropdownOpen, setViewDropdownOpen] = useState<boolean>(false);
@@ -66,7 +82,7 @@ const Header: React.FC = () => {
   };
 
   useEffect(() => {
-    if (router.pathname.includes('products')) {
+    if (router.pathname.includes('tasks')) {
       setSelectedLink('Task');
     } else if (router.pathname.includes('chats')) {
       setSelectedLink('Chat');
@@ -166,55 +182,140 @@ const Header: React.FC = () => {
             >
               <Image src="/moon.png" alt="moon" width={31} height={31} />
               <span className="text-2xl font-semibold text-left font-roboto">
-                {slug}
+                {displayTeamName}
               </span>
               <div className="pl-40 items-end">
                 <ChevronDownIcon className="h-5 w-5 text-black text-bold" />
               </div>
             </div>
 
-            {/* Project Dropdown */}
+            {/* Workspace Switcher & Settings Dropdown */}
             {activeDropdown === 'project' && (
-              <div className="absolute top-full px-1 mt-2 bg-chatbg border rounded-lg shadow-lg py-1 w-72 z-10">
-                <button className="text-left px-4 py-2 text-sm text-gray-700 flex items-center hover:bg-gray-200 w-full rounded-lg transition-all">
-                  <AdjustmentsHorizontalIcon className="h-5 w-5 mr-2" />
-                  {t('Customize modules')}
-                </button>
-                <hr className="my-1 border-gray-300" />
-                <button className="text-left px-4 py-2 text-sm text-gray-700 flex items-center hover:bg-gray-200 w-full rounded-lg transition-all">
-                  <PaintBrushIcon className="h-5 w-5 mr-2" />
-                  {t('Set color and Icon')}
-                </button>
-                <button className="text-left px-4 py-2 text-sm text-gray-700 flex items-center hover:bg-gray-200 w-full rounded-lg transition-all">
-                  <Cog6ToothIcon className="h-5 w-5 mr-2" />
-                  {t('List setting')}
-                </button>
-                <button className="text-left px-4 py-2 text-sm text-gray-700 flex items-center hover:bg-gray-200 w-full rounded-lg transition-all">
-                  <UserIcon className="h-5 w-5 mr-2" />
-                  {t('People and permissions')}
-                </button>
-                <button className="text-left px-4 py-2 text-sm text-gray-700 flex items-center hover:bg-gray-200 w-full rounded-lg transition-all">
-                  <EnvelopeIcon className="h-5 w-5 mr-2" />
-                  {t('Add task via email')}
-                </button>
-                <button className="text-left px-4 py-2 text-sm text-gray-700 flex items-center hover:bg-gray-200 w-full rounded-lg transition-all">
-                  <DocumentDuplicateIcon className="h-5 w-5 mr-2" />
-                  {t('Duplicate')}
-                </button>
-                <button className="text-left px-4 py-2 text-sm text-gray-700 flex items-center hover:bg-gray-200 w-full rounded-lg transition-all">
-                  <ArchiveBoxIcon className="h-5 w-5 mr-2" />
-                  {t('Archive list')}
-                </button>
-                <hr className="my-1 border-gray-300" />
-                <button className="text-left px-4 py-2 text-sm text-red-600 flex items-center hover:bg-gray-200 w-full rounded-lg transition-all">
-                  <TrashIcon className="h-5 w-5 mr-2" />
-                  {t('Delete list')}
-                </button>
+              <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 w-80 z-50 text-black font-inter">
+                {/* Section 1: Switch Workspace */}
+                <div className="px-4 py-2">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    {t('Switch Workspace')}
+                  </p>
+                  <div className="max-h-48 overflow-y-auto space-y-1">
+                    {(teams || []).map((team) => (
+                      <Link key={team.id} href={`/teams/${team.slug}/tasks`}>
+                        <div
+                          className={`flex items-center justify-between p-2 rounded-xl transition-all cursor-pointer ${
+                            team.slug === slug
+                              ? 'bg-orange-50 text-orange-600 font-semibold border border-orange-200'
+                              : 'hover:bg-gray-100 text-gray-700'
+                          }`}
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm">
+                              {team.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-sm truncate max-w-[160px]">{team.name}</span>
+                          </div>
+                          {team.slug === slug && (
+                            <span className="text-xs bg-orange-200 text-orange-700 px-2 py-0.5 rounded-full font-medium">
+                              {t('Active')}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                  
+                  {/* Create New Workspace */}
+                  <Link href="/teams?newTeam=true">
+                    <div
+                      className="mt-2 flex items-center space-x-2 p-2 hover:bg-gray-100 text-gray-700 rounded-xl transition-all cursor-pointer border border-dashed border-gray-300"
+                      onClick={() => setActiveDropdown(null)}
+                    >
+                      <PlusIcon className="w-5 h-5 text-gray-500" />
+                      <span className="text-sm font-medium">{t('Create New Workspace')}</span>
+                    </div>
+                  </Link>
+                </div>
+
+                <hr className="my-2 border-gray-200" />
+
+                {/* Section 2: Current Workspace Settings */}
+                {slug && (
+                  <div className="px-4 py-1">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                      {t('Workspace Management')}
+                    </p>
+                    <div className="space-y-0.5">
+                      <Link href={`/teams/${slug}/settings`}>
+                        <div 
+                          className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          <Cog6ToothIcon className="h-5 w-5 text-gray-500" />
+                          <span>{t('Workspace Settings')}</span>
+                        </div>
+                      </Link>
+                      <Link href={`/teams/${slug}/members`}>
+                        <div 
+                          className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          <UserGroupIcon className="h-5 w-5 text-gray-500" />
+                          <span>{t('Members & Permissions')}</span>
+                        </div>
+                      </Link>
+                      <Link href={`/teams/${slug}/billing`}>
+                        <div 
+                          className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          <CreditCardIcon className="h-5 w-5 text-gray-500" />
+                          <span>{t('Billing & Plans')}</span>
+                        </div>
+                      </Link>
+                      <Link href={`/teams/${slug}/sso`}>
+                        <div 
+                          className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          <GlobeAltIcon className="h-5 w-5 text-gray-500" />
+                          <span>{t('SSO & Security')}</span>
+                        </div>
+                      </Link>
+                      <Link href={`/teams/${slug}/webhooks`}>
+                        <div 
+                          className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          <ArrowPathRoundedSquareIcon className="h-5 w-5 text-gray-500" />
+                          <span>{t('Webhooks')}</span>
+                        </div>
+                      </Link>
+                      <Link href={`/teams/${slug}/api-keys`}>
+                        <div 
+                          className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          <KeyIcon className="h-5 w-5 text-gray-500" />
+                          <span>{t('API Keys')}</span>
+                        </div>
+                      </Link>
+                      <Link href={`/teams/${slug}/audit-logs`}>
+                        <div 
+                          className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+                          onClick={() => setActiveDropdown(null)}
+                        >
+                          <DocumentTextIcon className="h-5 w-5 text-gray-500" />
+                          <span>{t('Audit Logs')}</span>
+                        </div>
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
           <div className="flex items-center space-x-14">
-            <Link href="/teams/slug/products">
+            <Link href={`/teams/${slug}/tasks`}>
               <span
                 className={`relative cursor-pointer text-lg font-semibold ${
                   selectedLink === 'Task' ? 'text-orange-600' : 'text-black'
@@ -224,7 +325,7 @@ const Header: React.FC = () => {
               </span>
             </Link>
 
-            <Link href="/teams/slug/files">
+            <Link href={`/teams/${slug}/files`}>
               <span
                 className={`relative cursor-pointer text-lg font-semibold ${
                   selectedLink === 'Files' ? 'text-orange-600' : 'text-black'
@@ -234,7 +335,7 @@ const Header: React.FC = () => {
               </span>
             </Link>
 
-            <Link href="/teams/slug/chats">
+            <Link href={`/teams/${slug}/chats`}>
               <span
                 className={`relative cursor-pointer text-lg font-semibold ${
                   selectedLink === 'Chat' ? 'text-orange-600' : 'text-black'
@@ -442,35 +543,47 @@ const Header: React.FC = () => {
               <ChevronDownIcon className="h-6 w-6 text-black" />
             </button>
             {activeDropdown === 'user' && (
-              <div className="absolute right-0 w-48 bg-chatbg border rounded-lg shadow-lg mt-2 py-1 z-10">
-                <Link href="/help-center">
-                  <span className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                    {t('Help Center')}
-                  </span>
+              <div className="absolute right-0 w-56 bg-white border border-gray-200 rounded-2xl shadow-xl mt-2 py-2 z-50 text-black font-inter">
+                <Link href="/settings/account">
+                  <div 
+                    className="flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer rounded-xl transition-all"
+                    onClick={() => setActiveDropdown(null)}
+                  >
+                    <UserIcon className="h-5 w-5 text-gray-500" />
+                    <span>{t('Account Settings')}</span>
+                  </div>
                 </Link>
-                <Link href="/contact-us">
-                  <span className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                    {t('Contact Us')}
-                  </span>
+                <Link href="/settings/security">
+                  <div 
+                    className="flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer rounded-xl transition-all"
+                    onClick={() => setActiveDropdown(null)}
+                  >
+                    <Cog6ToothIcon className="h-5 w-5 text-gray-500" />
+                    <span>{t('Security & Password')}</span>
+                  </div>
                 </Link>
-                <hr className="my-1 border-gray-300" />
-                <Link href={`/teams/${slug}/usersettingpage`}>
-                  <span className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                    {t('My Settings')}
-                  </span>
-                </Link>
-                <Link href="/notifications">
-                  <span className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                    {t('Notifications')}
-                  </span>
-                </Link>
-                <hr className="my-1 border-gray-300" />
-                <span
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                  onClick={handleSignOut}
+                {slug && (
+                  <Link href={`/teams/${slug}/usersettingpage`}>
+                    <div 
+                      className="flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer rounded-xl transition-all"
+                      onClick={() => setActiveDropdown(null)}
+                    >
+                      <PaintBrushIcon className="h-5 w-5 text-gray-500" />
+                      <span>{t('System Preferences')}</span>
+                    </div>
+                  </Link>
+                )}
+                <hr className="my-1.5 border-gray-200" />
+                <div
+                  className="flex items-center space-x-3 px-4 py-2.5 text-sm text-red-600 hover:bg-gray-100 cursor-pointer rounded-xl transition-all"
+                  onClick={() => {
+                    setActiveDropdown(null);
+                    handleSignOut();
+                  }}
                 >
-                  {t('Log Out')}
-                </span>
+                  <TrashIcon className="h-5 w-5 text-red-500" />
+                  <span>{t('Log Out')}</span>
+                </div>
               </div>
             )}
           </div>

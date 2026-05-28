@@ -2,7 +2,7 @@ import React from 'react';
 
 const Card = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="card w-full border border-rounded dark:bg-black dark:border-gray-600">
+    <div className="card w-full bg-white dark:bg-zinc-950 border border-gray-200/80 dark:border-zinc-800/80 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300">
       {children}
     </div>
   );
@@ -10,7 +10,7 @@ const Card = ({ children }: { children: React.ReactNode }) => {
 
 const Title = ({ children }: { children: React.ReactNode }) => {
   return (
-    <h2 className="card-title text-xl font-medium leading-none tracking-tight">
+    <h2 className="card-title text-xl font-bold tracking-tight text-gray-900 dark:text-white">
       {children}
     </h2>
   );
@@ -18,21 +18,21 @@ const Title = ({ children }: { children: React.ReactNode }) => {
 
 const Description = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="text-gray-600 dark:text-gray-400 text-sm">{children}</div>
+    <div className="text-gray-500 dark:text-gray-400 text-sm mt-1">{children}</div>
   );
 };
 
 const Header = ({ children }: { children: React.ReactNode }) => {
-  return <div className="flex gap-2 flex-col">{children}</div>;
+  return <div className="flex gap-1.5 flex-col mb-4">{children}</div>;
 };
 
 const Body = ({ children }: { children: React.ReactNode }) => {
-  return <div className="card-body dark:bg-black gap-4 p-6">{children}</div>;
+  return <div className="card-body gap-5 p-6 md:p-8 rounded-t-3xl">{children}</div>;
 };
 
 const Footer = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="card-actions justify-end dark:border-gray-600 p-2 border-t bg-gray-50 dark:bg-black">
+    <div className="card-actions justify-end px-6 md:px-8 py-4 border-t border-gray-100 dark:border-zinc-800/80 bg-gray-50/40 dark:bg-zinc-900/10 rounded-b-3xl">
       {children}
     </div>
   );
@@ -45,3 +45,4 @@ Card.Header = Header;
 Card.Footer = Footer;
 
 export default Card;
+

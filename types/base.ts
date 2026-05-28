@@ -61,6 +61,7 @@ export type AppEvent =
   | 'tasks.fetched'
   | 'task.created'
   | 'task.deleted'
+  | 'task.updated'
   | 'project.updated'
   | 'teamMember.created'
   | 'teamMember.fetched'

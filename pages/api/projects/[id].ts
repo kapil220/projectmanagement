@@ -2,9 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
-import { validateWithSchema, deleteProjectSchema, 
-  //updateProjectSchema 
-} from '@/lib/zod';
+import { validateWithSchema, deleteProjectSchema, updateProjectSchema } from '@/lib/zod';
 
 export default async function handler(
   req: NextApiRequest, 
@@ -42,7 +40,7 @@ const handlePUT = async (
   id: string, 
   req: NextApiRequest, 
   res: NextApiResponse) => {
-/*  try {
+  try {
     const validatedData = validateWithSchema(updateProjectSchema, req.body);
 
     const project = await prisma.project.findUnique({
@@ -62,7 +60,7 @@ const handlePUT = async (
     res.status(200).json({ message: 'Project updated successfully', data: updatedProject });
   } catch (error: any) {
     res.status(400).json({ error: { message: error.message || 'Invalid request' } });
-  }*/
+  }
 };
 
 // Delete Project

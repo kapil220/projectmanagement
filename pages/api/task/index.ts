@@ -1,10 +1,10 @@
 /* eslint no-use-before-define: 0 */
 
 import { NextApiRequest, NextApiResponse } from 'next';
-//import { task } from '../../../models/task';
+import { task } from '../../../models/task';
 import { recordMetric } from '../../../lib/metrics';
 import { prisma } from "../../../lib/prisma";
-//import { taskSchema, validateWithSchema } from "../../../lib/zod";
+import { taskSchema, validateWithSchema } from "../../../lib/zod";
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -23,6 +23,9 @@ export default async function handler(
         }
         break;
       }
+      case 'POST':
+        await handlePOST(req, res);
+        break;
       case 'DELETE':
         await handleDELETE(req, res);
         break;
@@ -54,14 +57,13 @@ const handleGET = async (req: NextApiRequest, res: NextApiResponse) => {
     res.status(500).json({ error: { message: 'Failed to fetch tasks' } });
   }
 };
-/*
-// Create a project
+
+// Create a task
 const handlePOST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { projectId, description, name, stage, dueDate, priority, assignee, tag, assignor, teamId } = validateWithSchema(taskSchema, req.body);
-    //const { projectId, description,name, stage, date, priority, assignee, assignor,teamId } = task.parse(req.body);
+    const { projectId, description, name, stage, dueDate, priority, assignee, tag, assignor, teamId, status } = validateWithSchema(taskSchema, req.body);
 
-    console.log('Received Data:', { projectId, name, priority, description, dueDate, stage, tag, teamId });
+    console.log('Received Data:', { projectId, name, priority, description, dueDate, stage, tag, teamId, status });
     const parsedDate = dueDate ? new Date(dueDate) : undefined;
 
     const result = await task({
@@ -69,23 +71,24 @@ const handlePOST = async (req: NextApiRequest, res: NextApiResponse) => {
       description,
       name,
       dueDate: parsedDate,
-      stage,
+      stage: stage || '',
       priority,
       assignee,
       assignor,
       teamId,
-      tag
+      tag,
+      status
     });
     console.log("Result in save task---", result);
     recordMetric('task.created');
 
     res.status(200).json({ data: result });
   } catch (error) {
-    console.log("Errore in save task", error);
+    console.log("Error in save task", error);
 
     res.status(500).json({ error: { message: 'Failed to save task' } });
   }
-};  */
+};
 const handleDELETE = async (req: NextApiRequest, res: NextApiResponse) => {
   const { id } = req.query;
   console.log("id in delete fun.===", req.query);
@@ -99,7 +102,7 @@ const handleDELETE = async (req: NextApiRequest, res: NextApiResponse) => {
     return;
   }
   try {
-    await prisma.project.delete({
+    await prisma.task.delete({
       where: { id: String(id) }
     });
 
@@ -108,31 +111,40 @@ const handleDELETE = async (req: NextApiRequest, res: NextApiResponse) => {
 
     res.status(200).json({ message: 'task deleted successfully' });
   } catch (error) {
-    console.log("Error to delete project:", error);
-    res.status(500).json({ error: { message: 'Failed to delete project' } });
+    console.log("Error to delete task:", error);
+    res.status(500).json({ error: { message: 'Failed to delete task' } });
   }
 };
 const handlePUT = async (req: NextApiRequest, res: NextApiResponse) => {
-  const { id, projectName } = req.body;
+  const { id, name, stage, priority, dueDate, assignee, tag, description, status } = req.body;
 
-  if (!id || !projectName) {
-    res.status(400).json({ error: { message: 'Invalid ID or Project Name' } });
+  if (!id) {
+    res.status(400).json({ error: { message: 'Invalid ID' } });
     return;
   }
 
   try {
-    const updatedProject = await prisma?.project.update({
+    const updatedTask = await prisma?.task.update({
       where: { id: String(id) },
-      data: { projectName }
+      data: {
+        name,
+        stage,
+        priority,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+        assignee,
+        tag,
+        description,
+        status
+      }
     });
 
-    recordMetric('project.updated');
-    console.log(`Project with ID ${id} updated successfully`);
+    recordMetric('task.updated');
+    console.log(`Task with ID ${id} updated successfully`);
 
-    res.status(200).json({ data: updatedProject });
+    res.status(200).json({ data: updatedTask });
   } catch (error) {
-    console.log("Error updating project:", error);
-    res.status(500).json({ error: { message: 'Failed to update project' } });
+    console.log("Error updating task:", error);
+    res.status(500).json({ error: { message: 'Failed to update task' } });
   }
 };
 const getSingleProject = async (req: NextApiRequest, res: NextApiResponse) => {

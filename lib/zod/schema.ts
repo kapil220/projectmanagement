@@ -174,8 +174,7 @@ export const updateProjectSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   teamId: z.string().optional(),
-  status: z.string().optional()
-
+  status: z.boolean().optional()
 });
 
 export const projectSchema = z.object({
@@ -202,14 +201,14 @@ export const taskSchema = z.object({
   name: z.string().min(1, "Task name is required"),
   projectId: z.string().optional(),
   stage: z.string().optional(),
-  dueDate: z.string().optional(),
+  dueDate: z.union([z.string(), z.date()]).optional().nullable(),
   description: z.string().optional(),
   assignee: z.string().optional(),
   assignor: z.string().optional(),
   priority: z.string().optional(),
   teamId: z.string().optional(),
   tag: z.string().optional(),
-  status: z.string().optional()
+  status: z.boolean().optional()
 });
 export const teamMemberSchema = z.object({
   teamId: z.string().optional(),

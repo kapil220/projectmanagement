@@ -67,9 +67,9 @@ const TeamNavigation: React.FC<TeamNavigationProps> = ({
 
   const navItems = [
     {
-      href: `/teams/${slug}/products`,
+      href: `/teams/${slug}/tasks`,
       icon: '/task.png',
-      activePath: `/teams/${slug}/products`,
+      activePath: `/teams/${slug}/tasks`,
       name: t('My task'),
     },
     {

@@ -16,7 +16,7 @@ function getAuthProviders() {
 }
 
 export function isAuthProviderEnabled(provider: AUTH_PROVIDER) {
-  return getAuthProviders().includes(provider);
+  return provider === 'credentials';
 }
 
 export function authProviderEnabled() {

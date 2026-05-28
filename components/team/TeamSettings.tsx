@@ -92,10 +92,10 @@ const TeamSettings = ({ team }: { team: Team }) => {
               <div className="flex justify-end">
                 <Button
                   type="submit"
-                  color="primary"
                   loading={formik.isSubmitting}
                   disabled={!formik.isValid || !formik.dirty}
                   size="md"
+                  className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold rounded-xl border-none shadow-md shadow-orange-500/10 hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-300 disabled:!bg-gray-100 dark:disabled:!bg-zinc-800 disabled:!text-gray-400 dark:disabled:!text-zinc-600 disabled:shadow-none hover:scale-[1.02] active:scale-[0.98]"
                 >
                   {t('save-changes')}
                 </Button>

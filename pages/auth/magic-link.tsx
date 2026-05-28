@@ -12,7 +12,7 @@ import type { NextPageWithLayout } from 'types';
 type LoginProps = InferGetServerSidePropsType<typeof getServerSideProps>;
 
 const Login: NextPageWithLayout<LoginProps> = ({ csrfToken }) => {
-  return <MagicLink csrfToken={csrfToken} />;
+  return <MagicLink csrfToken={csrfToken || undefined} />;
 };
 
 Login.getLayout = function getLayout(page: ReactElement) {
@@ -31,7 +31,7 @@ export const getServerSideProps = async (
   return {
     props: {
       ...(locale ? await serverSideTranslations(locale, ['common']) : {}),
-      csrfToken: await getCsrfToken(context),
+      csrfToken: (await getCsrfToken(context)) || null,
     },
   };
 };

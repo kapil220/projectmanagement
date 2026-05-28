@@ -360,6 +360,29 @@ const Chat: React.FC = () => {
       console.error('Failed to save message via REST:', err);
     });
 
+    // If chat contains a file/attachment, save it to Project Files as well
+    if (content.type === 'image' || content.type === 'audio') {
+      const fileName = content.type === 'image' ? `Chat_Image_${Date.now()}.png` : `Chat_Audio_${Date.now()}.wav`;
+      const sizeBytes = Math.round(content.content.length * 0.75); // approx size for base64
+      const mimeType = content.type === 'image' ? 'image/png' : 'audio/wav';
+
+      axios.post('/api/files', {
+        name: fileName,
+        size: sizeBytes,
+        type: mimeType,
+        url: content.content,
+        teamId: teamId,
+        projectId: activeChannel.id,
+        uploadedBy: session?.user?.name || session?.user?.email || 'User'
+      })
+      .then(res => {
+        console.log('Chat file saved to Files Manager successfully:', res.data);
+      })
+      .catch(err => {
+        console.error('Failed to save chat file to Files Manager:', err);
+      });
+    }
+
     if (socket.current && newMessage) {
       const inputBody = {
         event: 'chat',

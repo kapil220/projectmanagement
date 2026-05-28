@@ -14,7 +14,7 @@ export type TaskType = {
   name: string;
   stage: string;
   dueDate: Date | null;
-  priority: string;
+  priority: 'Low' | 'Medium' | 'High';
   teamId: string;
   projectId: string;
   assignor: string;

@@ -155,14 +155,14 @@ const JoinWithInvitation = ({
           onChange={setRecaptchaToken}
           siteKey={recaptchaSiteKey}
         />
-        <div className="space-y-3">
+        <div className="mt-4 space-y-3">
           <Button
             type="submit"
-            color="primary"
             loading={formik.isSubmitting}
             active={formik.dirty}
             fullWidth
             size="md"
+            className="btn bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold border-none transition-all shadow-md shadow-orange-500/10 hover:shadow-orange-500/20 rounded-2xl py-3"
           >
             {t('create-account')}
           </Button>

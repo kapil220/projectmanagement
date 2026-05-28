@@ -85,7 +85,7 @@ const Login: NextPageWithLayout<
       const response = await signIn('credentials', {
         email,
         password,
-        csrfToken,
+        csrfToken: csrfToken || undefined,
         redirect: false,
         callbackUrl: redirectUrl,
         recaptchaToken,
@@ -121,15 +121,7 @@ const Login: NextPageWithLayout<
           {t(message.text)}
         </Alert>
       )}
-      <div className="rounded p-6 border">
-        <div className="flex gap-2 flex-wrap">
-          {authProviders.github && <GithubButton />}
-          {/* {authProviders.google && <GoogleButton />} */}
-        </div>
-
-        {/* {(authProviders.github || authProviders.google) &&
-          authProviders.credentials && <div className="divider">{t('or')}</div>} */}
-
+      <div className="space-y-4">
         {authProviders.credentials && (
           <form onSubmit={formik.handleSubmit}>
             <div className="space-y-3">
@@ -141,6 +133,7 @@ const Login: NextPageWithLayout<
                 value={formik.values.email}
                 error={formik.touched.email ? formik.errors.email : undefined}
                 onChange={formik.handleChange}
+                className="input input-bordered focus:border-orange-500 focus:ring-orange-500"
               />
               <div className="relative flex">
                 <InputWithLabel
@@ -150,11 +143,11 @@ const Login: NextPageWithLayout<
                   value={formik.values.password}
                   label={
                     <label className="label">
-                      <span className="label-text">{t('password')}</span>
+                      <span className="label-text text-sm font-semibold text-gray-700 dark:text-zinc-300">{t('password')}</span>
                       <span className="label-text-alt">
                         <Link
                           href="/auth/forgot-password"
-                          className="text-sm text-primary hover:text-[color-mix(in_oklab,oklch(var(--p)),black_7%)]"
+                          className="text-xs font-semibold text-orange-600 hover:text-orange-500"
                         >
                           {t('forgot-password')}
                         </Link>
@@ -165,6 +158,7 @@ const Login: NextPageWithLayout<
                     formik.touched.password ? formik.errors.password : undefined
                   }
                   onChange={formik.handleChange}
+                  className="input input-bordered focus:border-orange-500 focus:ring-orange-500"
                 />
                 <TogglePasswordVisibility
                   isPasswordVisible={isPasswordVisible}
@@ -177,14 +171,14 @@ const Login: NextPageWithLayout<
                 siteKey={recaptchaSiteKey}
               />
             </div>
-            <div className="mt-3 space-y-3">
+            <div className="mt-4 space-y-3">
               <Button
                 type="submit"
-                color="primary"
                 loading={formik.isSubmitting}
                 active={formik.dirty}
                 fullWidth
                 size="md"
+                className="btn bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold border-none transition-all shadow-md shadow-orange-500/10 hover:shadow-orange-500/20 rounded-2xl py-3"
               >
                 {t('sign-in')}
               </Button>
@@ -193,7 +187,7 @@ const Login: NextPageWithLayout<
           </form>
         )}
 
-{(authProviders.github || authProviders.google) &&
+        {(authProviders.github || authProviders.google) &&
           authProviders.credentials && <div className="divider">{t('or')}</div>}
 
         {(authProviders.email || authProviders.saml) && (
@@ -247,7 +241,7 @@ export const getServerSideProps = async (
   return {
     props: {
       ...(locale ? await serverSideTranslations(locale, ['common']) : {}),
-      csrfToken: await getCsrfToken(context),
+      csrfToken: (await getCsrfToken(context)) || null,
       authProviders: authProviderEnabled(),
       recaptchaSiteKey: env.recaptcha.siteKey,
     },

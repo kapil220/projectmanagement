@@ -348,3 +348,16 @@ model ChannelUsers {
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @default(now())
 }
+
+model WorkspaceFile {
+  id         String   @id @default(uuid())
+  name       String
+  size       Int
+  type       String
+  url        String
+  teamId     String
+  projectId  String?
+  uploadedBy String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+}
