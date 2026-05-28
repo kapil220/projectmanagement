@@ -304,6 +304,22 @@ model Project {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
 }
+
+model ProjectMember {
+  id        String   @id @default(uuid())
+  projectId String
+  userId    String
+  userName  String
+  userEmail String
+  role      String   @default("MEMBER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
 model Task {
   id            String   @id @default(uuid())
   projectId     String?

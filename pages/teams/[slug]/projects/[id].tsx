@@ -13,6 +13,7 @@ import { useViewMode } from '../../../../context/viewmodecontext';
 import TaskSection from '@/components/tasks/TaskSection';
 import TaskListViewSection from '@/components/tasks/TaskListViewSection';
 import TaskDetailModal from '@/components/tasks/TaskDetailModal';
+import ProjectMembersModal from '@/components/project/ProjectMembersModal';
 import { Section as SectionType, TaskType as ComponentTaskType } from '@/components/tasks/types';
 import { TaskType as BoardTask } from 'types';
 import { convertTaskToComponentType } from '../../../../utility/taskconversion';
@@ -20,12 +21,13 @@ import {
   AdjustmentsHorizontalIcon,
   PaintBrushIcon,
   Cog6ToothIcon,
-  UserIcon,
+  UserGroupIcon,
   EnvelopeIcon,
   DocumentDuplicateIcon,
   ArchiveBoxIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
+
 
 const initialSections: SectionType[] = [
   { id: 1, title: 'Planning', tasks: [] },
@@ -79,6 +81,7 @@ const TaskPage: NextPageWithLayout = () => {
   const [tasks, setTasks] = useState<BoardTask[]>([]);
   const [selectedTask, setSelectedTask] = useState<ComponentTaskType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const { viewMode } = useViewMode();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
@@ -472,10 +475,13 @@ const TaskPage: NextPageWithLayout = () => {
                 {t('Rename list')}
               </button>
               <button 
-                onClick={() => router.push(`/teams/${slug}/members`)}
+                onClick={() => {
+                  setActiveDropdown(null);
+                  setIsMembersModalOpen(true);
+                }}
                 className="text-left px-4 py-2.5 text-sm text-gray-700 flex items-center hover:bg-gray-100 w-full rounded-xl transition-all"
               >
-                <UserIcon className="h-5 w-5 mr-2 text-gray-500" />
+                <UserGroupIcon className="h-5 w-5 mr-2 text-gray-500" />
                 {t('People and permissions')}
               </button>
               <button 
@@ -518,6 +524,14 @@ const TaskPage: NextPageWithLayout = () => {
         isOpen={isModalOpen}
         onClose={closeModal}
         updateTask={(t) => updateTask(t as BoardTask)}
+      />
+
+      <ProjectMembersModal
+        projectId={projectId}
+        projectName={project?.projectName || ''}
+        teamSlug={Array.isArray(slug) ? slug[0] : slug ?? ''}
+        visible={isMembersModalOpen}
+        onClose={() => setIsMembersModalOpen(false)}
       />
     </DragDropContext>
   );
