@@ -60,61 +60,48 @@ const handleGET = async (req: NextApiRequest, res: NextApiResponse) => {
 
 // Create a task
 const handlePOST = async (req: NextApiRequest, res: NextApiResponse) => {
-  try {
-    const { projectId, description, name, stage, dueDate, priority, assignee, tag, assignor, teamId, status } = validateWithSchema(taskSchema, req.body);
+  // Let errors bubble up to the outer handler which maps ApiError status codes correctly
+  const { projectId, description, name, stage, dueDate, priority, assignee, tag, assignor, teamId, status } = validateWithSchema(taskSchema, req.body);
 
-    console.log('Received Data:', { projectId, name, priority, description, dueDate, stage, tag, teamId, status });
-    const parsedDate = dueDate ? new Date(dueDate) : undefined;
+  const parsedDate = dueDate ? new Date(dueDate) : undefined;
 
-    const result = await task({
-      projectId: projectId || null,
-      description,
-      name,
-      dueDate: parsedDate,
-      stage: stage || '',
-      priority,
-      assignee,
-      assignor,
-      teamId,
-      tag,
-      status
-    });
-    console.log("Result in save task---", result);
-    recordMetric('task.created');
+  // Sanitize empty string projectId to null (frontend sends '' when no project selected)
+  const sanitizedProjectId = projectId && projectId.trim() !== '' ? projectId : null;
 
-    res.status(200).json({ data: result });
-  } catch (error) {
-    console.log("Error in save task", error);
+  const result = await task({
+    projectId: sanitizedProjectId,
+    description,
+    name,
+    dueDate: parsedDate,
+    stage: stage || '',
+    priority,
+    assignee,
+    assignor,
+    teamId,
+    tag,
+    status
+  });
 
-    res.status(500).json({ error: { message: 'Failed to save task' } });
-  }
+  recordMetric('task.created');
+  res.status(200).json({ data: result });
 };
+
 const handleDELETE = async (req: NextApiRequest, res: NextApiResponse) => {
   const { id } = req.query;
-  console.log("id in delete fun.===", req.query);
 
   if (!id) {
     res.status(400).json({ error: { message: 'Invalid ID' } });
     return;
   }
-  if (!prisma) {
-    res.status(500).json({ error: { message: 'Prisma client not initialized' } });
-    return;
-  }
-  try {
-    await prisma.task.delete({
-      where: { id: String(id) }
-    });
 
-    recordMetric('task.deleted');
-    console.log(`task with ID ${id} deleted successfully======`);
+  await prisma.task.delete({
+    where: { id: String(id) }
+  });
 
-    res.status(200).json({ message: 'task deleted successfully' });
-  } catch (error) {
-    console.log("Error to delete task:", error);
-    res.status(500).json({ error: { message: 'Failed to delete task' } });
-  }
+  recordMetric('task.deleted');
+  res.status(200).json({ message: 'task deleted successfully' });
 };
+
 const handlePUT = async (req: NextApiRequest, res: NextApiResponse) => {
   const { id, name, stage, priority, dueDate, assignee, tag, description, status } = req.body;
 
@@ -123,30 +110,24 @@ const handlePUT = async (req: NextApiRequest, res: NextApiResponse) => {
     return;
   }
 
-  try {
-    const updatedTask = await prisma?.task.update({
-      where: { id: String(id) },
-      data: {
-        name,
-        stage,
-        priority,
-        dueDate: dueDate ? new Date(dueDate) : undefined,
-        assignee,
-        tag,
-        description,
-        status
-      }
-    });
+  const updatedTask = await prisma.task.update({
+    where: { id: String(id) },
+    data: {
+      name,
+      stage,
+      priority,
+      dueDate: dueDate ? new Date(dueDate) : undefined,
+      assignee,
+      tag,
+      description,
+      status
+    }
+  });
 
-    recordMetric('task.updated');
-    console.log(`Task with ID ${id} updated successfully`);
-
-    res.status(200).json({ data: updatedTask });
-  } catch (error) {
-    console.log("Error updating task:", error);
-    res.status(500).json({ error: { message: 'Failed to update task' } });
-  }
+  recordMetric('task.updated');
+  res.status(200).json({ data: updatedTask });
 };
+
 const getSingleProject = async (req: NextApiRequest, res: NextApiResponse) => {
   const { id } = req.query;
   if (!id || typeof id !== 'string') {
