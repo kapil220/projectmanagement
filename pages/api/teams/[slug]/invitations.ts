@@ -6,6 +6,7 @@ import { ApiError } from '@/lib/errors';
 import { sendAudit } from '@/lib/retraced';
 import { getSession } from '@/lib/session';
 import { sendEvent } from '@/lib/svix';
+import { prisma } from '@/lib/prisma';
 import {
   createInvitation,
   deleteInvitation,
@@ -68,7 +69,7 @@ const handlePOST = async (req: NextApiRequest, res: NextApiResponse) => {
   const teamMember = await throwIfNoTeamAccess(req, res);
   throwIfNotAllowed(teamMember, 'team_invitation', 'create');
 
-  const { email, role, sentViaEmail, domains } = validateWithSchema(
+  const { email, role, sentViaEmail, domains, projectId } = validateWithSchema(
     inviteViaEmailSchema,
     req.body
   ) as {
@@ -76,6 +77,7 @@ const handlePOST = async (req: NextApiRequest, res: NextApiResponse) => {
     role: Role;
     sentViaEmail: boolean;
     domains?: string;
+    projectId?: string;
   };
 
   let invitation: undefined | Invitation = undefined;
@@ -158,9 +160,10 @@ Execution Time: 0.152 ms
       teamId: teamMember.teamId,
       invitedBy: teamMember.userId,
       email,
-      role,
+      role: projectId ? Role.GUEST : role,
       sentViaEmail: true,
       allowedDomains: [],
+      projectId: projectId || null,
     });
   }
 
@@ -182,11 +185,10 @@ Execution Time: 0.152 ms
     throw new ApiError(400, 'Could not create invitation. Please try again.');
   }
   if (invitation.sentViaEmail) {
-    console.log("Invitation via email: inside true" )
     await sendTeamInviteEmail(teamMember.team, invitation);
   }
 
-  const invitationLink = await sendEvent(teamMember.teamId, 'invitation.created', invitation);
+  await sendEvent(teamMember.teamId, 'invitation.created', invitation);
   sendAudit({
     action: 'member.invitation.create',
     crud: 'c',
@@ -195,7 +197,6 @@ Execution Time: 0.152 ms
   });
 
   recordMetric('invitation.created');
-
   res.status(204).end();
 };
 
@@ -304,11 +305,31 @@ const handlePUT = async (req: NextApiRequest, res: NextApiResponse) => {
 
   await sendEvent(invitation.team.id, 'member.created', teamMember);
 
+  // If this was a project-scoped invite, add user to that project
+  if (invitation.projectId) {
+    const user = session?.user as any;
+    await prisma.projectMember.upsert({
+      where: {
+        projectId_userId: {
+          projectId: invitation.projectId,
+          userId: session?.user?.id as string,
+        },
+      },
+      create: {
+        projectId: invitation.projectId,
+        userId: session?.user?.id as string,
+        userName: user?.name || user?.email || 'Guest',
+        userEmail: user?.email || '',
+        role: 'GUEST',
+      },
+      update: {},
+    });
+  }
+
   if (invitation.sentViaEmail) {
     await deleteInvitation({ token: inviteToken });
   }
 
   recordMetric('member.created');
-
   res.status(204).end();
 };
