@@ -3,12 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  // directUrl is used for migrations only — set this to a non-pooled connection
-  // when DATABASE_URL points to a connection pooler (PgBouncer / Supabase pooler)
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
+
 
 enum Role {
   ADMIN

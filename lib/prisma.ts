@@ -5,21 +5,25 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-// Singleton pattern for ALL environments.
-// In Next.js API routes each request can spin up a new module instance,
-// leading to multiple PrismaClient instances and "prepared statement already exists"
-// errors with connection poolers (PgBouncer / Supabase pooler).
-const prismaClientSingleton = () => {
-  return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  });
+// Auto-append pgbouncer=true so prepared statements are disabled.
+// This fixes "42P05 prepared statement already exists" with connection
+// poolers (Supabase, PgBouncer) — no server env changes required.
+const getDatabaseUrl = () => {
+  const url = process.env.DATABASE_URL || '';
+  if (url.includes('pgbouncer=true')) return url; // already configured
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}pgbouncer=true&connection_limit=1`;
 };
 
-export const prisma: PrismaClient =
-  global.prisma ?? prismaClientSingleton();
+const createPrismaClient = () =>
+  new PrismaClient({
+    datasources: { db: { url: getDatabaseUrl() } },
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  });
 
-// Always cache on global — prevents multiple instances across hot-reloads in dev
-// and across multiple API route invocations in production.
+export const prisma: PrismaClient = global.prisma ?? createPrismaClient();
+
+// Cache globally to prevent multiple instances across hot-reloads and API routes
 if (!global.prisma) {
   global.prisma = prisma;
 }
