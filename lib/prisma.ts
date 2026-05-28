@@ -6,13 +6,14 @@ declare global {
 }
 
 // Auto-append pgbouncer=true so prepared statements are disabled.
+// connect_timeout=10 makes connections fail fast (10s) instead of hanging forever.
 // This fixes "42P05 prepared statement already exists" with connection
 // poolers (Supabase, PgBouncer) — no server env changes required.
 const getDatabaseUrl = () => {
   const url = process.env.DATABASE_URL || '';
-  if (url.includes('pgbouncer=true')) return url; // already configured
+  if (url.includes('pgbouncer=true')) return url; // already fully configured
   const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}pgbouncer=true&connection_limit=1`;
+  return `${url}${separator}pgbouncer=true&connection_limit=1&connect_timeout=10&pool_timeout=10`;
 };
 
 const createPrismaClient = () =>
