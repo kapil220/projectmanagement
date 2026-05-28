@@ -1,8 +1,26 @@
 import type { SessionStrategy } from 'next-auth';
 
+// Resolve the correct app URL:
+// 1. APP_URL if explicitly set (e.g. https://taskiyo.vercel.app)
+// 2. NEXTAUTH_URL as fallback
+// 3. VERCEL_URL auto-set by Vercel on every deployment (prefixed with https://)
+const getAppUrl = () => {
+  if (process.env.APP_URL && !process.env.APP_URL.includes('localhost')) {
+    return process.env.APP_URL;
+  }
+  if (process.env.NEXTAUTH_URL && !process.env.NEXTAUTH_URL.includes('localhost')) {
+    return process.env.NEXTAUTH_URL;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  // fallback to whatever is set (localhost in dev)
+  return process.env.APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:4002';
+};
+
 const env = {
   databaseUrl: `${process.env.DATABASE_URL}`,
-  appUrl: `${process.env.APP_URL}`,
+  appUrl: getAppUrl(),
   redirectIfAuthenticated: '/dashboard',
 
   // SMTP configuration for NextAuth
