@@ -45,99 +45,94 @@ export default async function handler(
   }
 }
 
-// Get projects
+// Get projects — with GUEST access filtering
 const handleGET = async (req: NextApiRequest, res: NextApiResponse) => {
-  try {
-    // Fetch all projects
-    const projects = await prisma.project.findMany();
+  // Get current user's team membership to check if they are a GUEST
+  const { teamId } = req.query as { teamId?: string };
+  const userId = (req as any).session?.user?.id;
 
-    // Fetch user count for each project
-    const projectListWithUserCount = await Promise.all(
-      projects.map(async (project) => {
-        // Count the users associated with each project
-        const userCount = await prisma.channelUsers.count({
-          where: {
-            channelId: project.id, // Assuming channelId in channelUsers maps to project id
-          },
-        });
-        return {
-          ...project,
-          userCount,
-        };
-      })
-    );
-
-    console.log("projects List with user count==>>", projectListWithUserCount);
-    recordMetric('projects.fetched');
-
-    res.status(200).json({ data: projectListWithUserCount });
-  } catch (error) {
-    console.error('Failed to fetch projects with user counts:', error);
-    res.status(500).json({ error: { message: 'Failed to fetch projects' } });
+  // Try to detect if the requester is a GUEST by checking their TeamMember role
+  let guestProjectIds: string[] | null = null;
+  if (userId && teamId) {
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId, teamId },
+      select: { role: true },
+    });
+    if (membership?.role === 'GUEST') {
+      // Only fetch projects this guest is a member of
+      const guestProjects = await prisma.projectMember.findMany({
+        where: { userId },
+        select: { projectId: true },
+      });
+      guestProjectIds = guestProjects.map((p) => p.projectId);
+    }
   }
-/*  try {
-    const projectList = await prisma?.project.findMany();
-    console.log("projects List==>>", projectList);
-    recordMetric('projects.fetched');
 
-    res.status(200).json({ data: projectList });
-  } catch (error) {
-    res.status(500).json({ error: { message: 'Failed to fetch projects' } });
-  }  */
+  // Fetch projects — filtered for GUESTs, all for full members
+  const projects = await prisma.project.findMany({
+    where: guestProjectIds !== null
+      ? { id: { in: guestProjectIds } }
+      : undefined,
+  });
+
+  // Get member counts in ONE query (no N+1)
+  const memberCounts = await prisma.projectMember.groupBy({
+    by: ['projectId'],
+    _count: { userId: true },
+    where: { projectId: { in: projects.map((p) => p.id) } },
+  });
+
+  const countMap = new Map(memberCounts.map((c) => [c.projectId, c._count.userId]));
+
+  const projectListWithUserCount = projects.map((project) => ({
+    ...project,
+    userCount: countMap.get(project.id) ?? 0,
+  }));
+
+  recordMetric('projects.fetched');
+  res.status(200).json({ data: projectListWithUserCount });
 };
+
 
 // Create a project
 const handlePOST = async (req: NextApiRequest, res: NextApiResponse) => {
-  try {
-    const { projectName, description, user_id, startDate, endDate, teamId } = projectSchema.parse(req.body);
+  const { projectName, description, user_id, startDate, endDate, teamId } = projectSchema.parse(req.body);
 
-    console.log('Received Data:', { projectName, startDate, description, endDate, user_id, teamId });
-    const parsedStartDate = startDate ? new Date(startDate) : undefined;
-    const parsedEndDate = endDate ? new Date(endDate) : undefined;
+  const parsedStartDate = startDate ? new Date(startDate) : undefined;
+  const parsedEndDate = endDate ? new Date(endDate) : undefined;
 
-    const result = await project({
-      projectName,
-      description,
-      user_id,
-      startDate: parsedStartDate,
-      endDate: parsedEndDate,
-      teamId
-    });
-    console.log("Result in save project---", result);
-    recordMetric('project.created');
+  const result = await project({
+    projectName,
+    description,
+    user_id,
+    startDate: parsedStartDate,
+    endDate: parsedEndDate,
+    teamId
+  });
 
-    res.status(200).json({ data: result });
-  } catch (error) {
-    console.log("Errore in save project", error);
-
-    res.status(500).json({ error: { message: 'Failed to save project' } });
-  }
+  recordMetric('project.created');
+  res.status(200).json({ data: result });
 };
+
 
 // Update a project
 const handlePUT = async (req: NextApiRequest, res: NextApiResponse) => {
   const { id } = req.query;
 
-  if (!id ) {
-    res.status(400).json({ error: { message: 'Invalid ID ' } });
+  if (!id) {
+    res.status(400).json({ error: { message: 'Invalid ID' } });
     return;
   }
 
-  try {
-    const updatedProject = await prisma?.project.update({
-      where: { id: String(id) },
-      data: { status: false }
-    });
+  const updatedProject = await prisma.project.update({
+    where: { id: String(id) },
+    data: { status: false }
+  });
 
-    recordMetric('project.updated');
-    console.log(`Project with ID ${id} updated successfully`);
-
-    res.status(200).json({ data: updatedProject });
-  } catch (error) {
-    console.log("Error updating project:", error);
-    res.status(500).json({ error: { message: 'Failed to update project' } });
-  }
+  recordMetric('project.updated');
+  res.status(200).json({ data: updatedProject });
 };
+
 
 // Get a single project by ID
 const getSingleProject = async (req: NextApiRequest, res: NextApiResponse) => {
