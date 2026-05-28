@@ -22,7 +22,7 @@ interface WorkspaceFile {
   name: string;
   size: number;
   type: string;
-  url: string;
+  url?: string; // Not included in list responses — fetched on demand for download
   teamId: string;
   projectId: string | null;
   uploadedBy: string;
@@ -47,6 +47,7 @@ const FilesPage: NextPageWithLayout = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'All' | 'Images' | 'Documents' | 'Media' | 'Archives'>('All');
   const [uploading, setUploading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProjects = async () => {
@@ -107,10 +108,12 @@ const FilesPage: NextPageWithLayout = () => {
           });
 
           if (response.status === 200 && response.data.data) {
-            setFiles((prev) => [response.data.data, ...prev]);
+            // Strip url from state (consistent with list-response shape — url fetched on demand)
+            const { url: _url, ...fileWithoutUrl } = response.data.data;
+            setFiles((prev) => [fileWithoutUrl as WorkspaceFile, ...prev]);
           }
-        } catch (err) {
-          console.error('Failed to save file record:', err);
+        } catch {
+          // Silent — toast already handles UX feedback
         }
       }
     } catch (error) {
@@ -123,6 +126,26 @@ const FilesPage: NextPageWithLayout = () => {
     }
   };
 
+  // Fetch file url on demand and trigger browser download
+  const handleDownload = async (file: WorkspaceFile) => {
+    setDownloadingId(file.id);
+    try {
+      const response = await axios.get(`/api/files?id=${file.id}`);
+      const fullFile = response.data.data;
+      if (!fullFile?.url) return;
+      const link = document.createElement('a');
+      link.href = fullFile.url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch {
+      alert('Failed to download file. Please try again.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const handleFileDelete = async (id: string) => {
     if (!window.confirm(t('Are you sure you want to delete this file?'))) return;
     try {
@@ -130,9 +153,8 @@ const FilesPage: NextPageWithLayout = () => {
       if (response.status === 200) {
         setFiles((prev) => prev.filter((file) => file.id !== id));
       }
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      alert('Failed to delete file');
+    } catch {
+      alert('Failed to delete file. Please try again.');
     }
   };
 
@@ -302,13 +324,21 @@ const FilesPage: NextPageWithLayout = () => {
                 </div>
 
                 {/* Download Button */}
-                <a
-                  href={file.url}
-                  download={file.name}
-                  className="flex items-center justify-center p-2 bg-gray-50 hover:bg-orange-500 text-gray-600 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer"
+                <button
+                  onClick={() => handleDownload(file)}
+                  disabled={downloadingId === file.id}
+                  className="flex items-center justify-center p-2 bg-gray-50 hover:bg-orange-500 text-gray-600 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50"
+                  title={`Download ${file.name}`}
                 >
-                  <ArrowDownTrayIcon className="w-5 h-5" />
-                </a>
+                  {downloadingId === file.id ? (
+                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <ArrowDownTrayIcon className="w-5 h-5" />
+                  )}
+                </button>
               </div>
             </div>
           ))}

@@ -198,11 +198,10 @@ const Chat: React.FC = () => {
   }, [chatMessages]);
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 3000);
 
+    // Use Supabase Realtime for live updates — no polling needed
     let subscription: any = null;
     if (supabase && activeChannel.id) {
-      console.log('Subscribing to Supabase Realtime for channel:', activeChannel.id);
       subscription = supabase
         .channel(`chat-history-changes-${activeChannel.id}`)
         .on(
@@ -213,23 +212,19 @@ const Chat: React.FC = () => {
             table: 'ChatHistory',
             filter: `chat_id=eq.${activeChannel.id}`,
           },
-          (payload) => {
-            console.log('Realtime message insert detected!', payload);
+          () => {
             fetchMessages();
           }
         )
-        .subscribe((status) => {
-          console.log(`Realtime subscription status for channel ${activeChannel.id}:`, status);
-        });
+        .subscribe();
     }
 
     return () => {
-      clearInterval(interval);
       if (supabase && subscription) {
         supabase.removeChannel(subscription);
       }
     };
-   }, [activeChannel]);
+  }, [activeChannel]);
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setMessages(chatMessages[activeChannel.id] || []);
@@ -242,26 +237,19 @@ const Chat: React.FC = () => {
   }, [searchQuery, chatMessages]);
 
   useEffect(() => {
-    console.log('CHAT_PUBLIC_URL (before socket):', process.env.NEXT_PUBLIC_CHAT_URL);
-
     socket.current = io(`${process.env.NEXT_PUBLIC_CHAT_URL}`);
-    //console.log("Active channel", activeChannel);
+
     socket.current.on('connect', () => {
       socket.current!.emit('join', activeChannel.id);
-      //console.log('Socket.IO connection established');
     });
 
     socket.current.on('message', (data: any) => {
       try {
         const parsedMessage = JSON.parse(data);
-        //console.log('Message from server:', parsedMessage);
-        console.log('Inside mesaage received', parsedMessage);
         if (
           parsedMessage.event === 'chat' &&
           parsedMessage.message.sender != session?.user.id
         ) {
-          console.log('Inside mesaage received messages updated');
-          //setMessages((prevMessages) => [...prevMessages, parsedMessage.message]);
           setChatMessages((prevMessages) => ({
             ...prevMessages,
             [activeChannel.id]: [
@@ -269,26 +257,19 @@ const Chat: React.FC = () => {
               parsedMessage.message,
             ],
           }));
-          //console.log('Messages:', parsedMessage.message);
         }
       } catch (error) {
-        console.error('Error parsing message:', error);
+        // Silently handle parse errors
       }
     });
-    socket.current.on('disconnect', () => {
-      console.log('Socket.IO connection closed');
-    });
+
     socket.current.on('error', (error: any) => {
       console.error('Socket.IO error:', error);
     });
-    /* const allUnreadMessages = Object.values(chatMessages)
-        .flat()
-        .filter((msg) => !msg.isRead && msg.user !== currentUser?.name);
-      setUnreadMessages(allUnreadMessages);
-      return () => {
-        socket.current?.close();
-      };
-      */
+
+    return () => {
+      socket.current?.disconnect();
+    };
   }, [currentUser, activeChannel]);
 
   const handleUploadDocument = () => {
@@ -337,8 +318,6 @@ const Chat: React.FC = () => {
       createdAt: '',
     };
 
-    console.log('Chat messages:', chatMessages[activeChannel.id]);
-    //setChatMessages({ ...chatMessages, [activeChannel.id]: updatedMessages });
     setChatMessages((prevMessages) => ({
       ...prevMessages,
       [activeChannel.id]: [
@@ -346,18 +325,13 @@ const Chat: React.FC = () => {
         newMessage,
       ],
     }));
-    console.log('Updated chat messages:', chatMessages[activeChannel.id]);
 
     // Persist message to database via REST endpoint
     const baseUrl = process.env.NEXT_PUBLIC_CHAT_URL || '';
     axios.post(`${baseUrl}/api/messages/${activeChannel.id}`, {
       message: content.content
-    })
-    .then(response => {
-      console.log('Message saved successfully via REST:', response.data);
-    })
-    .catch(err => {
-      console.error('Failed to save message via REST:', err);
+    }).catch(() => {
+      // REST save failed — message already delivered via socket
     });
 
     // If chat contains a file/attachment, save it to Project Files as well
@@ -415,144 +389,115 @@ const Chat: React.FC = () => {
   const fetchUsers = async () => {
     try {
       const response = await axios.get('/api/team-member');
-      // const userName = response.data.data;
-      console.log('response of user list', response.data.data[0].username);
-
-      //  setDirectMessages(response.data.map((user: User) => user.name));
-      //setDirectMessages(response.data.data);
       return response.data.data;
     } catch (error) {
-      console.error('Error fetching users:', error);
+      return [];
     }
   };
   const saveLastSeenTime = async (userId: any, channelId: string, teamId: string) => {
     try {
-      const response = await axios.post('/api/last-read-time', {userId, channelId,teamId} );
-      console.log("Response data:", response);
-    } catch (error) {
-      console.error('Error saving last seen time', error);
+      await axios.post('/api/last-read-time', { userId, channelId, teamId });
+    } catch {
+      // Non-critical — silently skip
     }
   };
+
   const getLastSeenTime = async (userId: string, channelId: string, teamId: string) => {
     try {
-      const response = await axios.get("/api/last-read-time?userId="+userId+"&teamId="+teamId+"&channelId="+channelId);
-      console.log("Last read time:", response);
+      const response = await axios.get(`/api/last-read-time?userId=${userId}&teamId=${teamId}&channelId=${channelId}`);
       setLastSeenTime(response.data.lastReadTime);
-      //if (response.data && response.data.data.lastReadTime)
-    } catch (error) {
-      console.error('Error saving last seen time', error);
+    } catch {
+      // Non-critical — silently skip
     }
   };
   // Fetch messages when the active channel changes
   const fetchMessages = async () => {
-    console.log('In fetchMessages-------');
     try {
       const baseUrl = process.env.NEXT_PUBLIC_CHAT_URL || '';
-      console.log('CHAT_PUBLIC_URL:', baseUrl);
-
       const response = await axios.get(`${baseUrl}/api/messages/${activeChannel.id}`);
       setChatMessages(prevMessages => ({
         ...prevMessages,
         [activeChannel.id]: response.data,
       }));
-      if(activeChannel.type == 'Direct Message' ) {
+      if (activeChannel.type === 'Direct Message') {
         saveLastSeenTime(session?.user.id, activeChannel.id, teamId);
         getLastSeenTime(activeChannel.toUserId, activeChannel.id, teamId);
       }
-        console.log('Messages fetched from API:', response);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
+    } catch {
+      // Silently handle — channel may not have messages yet
     }
   };
   const fetchChatGroup = async () => {
     try {
       const response = await axios.get('/api/chatGroups');
       const newData = response.data.data;
-      console.log("newData from user's groups", newData);
-     
-    const groupNames = newData
-    .filter((group: any) => group.status !== false)
-    .map((group: any) => ({
-      id: group.id,
-      groupName: group.groupName,
-      user_id: group.user_id, 
-      status: group.status,
-      teamId: group.teamId,    
-    }));
-    console.log("groupNames-----",groupNames);
-    
-      //setGroupChats(groupNames);
-      return groupNames;
-    } catch (error) {
-      console.error('Error fetching userlist', error);
+      return newData
+        .filter((group: any) => group.status !== false)
+        .map((group: any) => ({
+          id: group.id,
+          groupName: group.groupName,
+          user_id: group.user_id,
+          status: group.status,
+          teamId: group.teamId,
+        }));
+    } catch {
       return [];
     }
   };
+
   const fetchChannelList = async () => {
     try {
       const response = await axios.get('/api/projects');
-      const newData = response.data.data;
-      console.log('newData from channels list', newData);
-      const activeChannels = newData.filter(channel => channel.status === true);
-      console.log("activeChannels  list----", activeChannels);
-      //setChannelsList(activeChannels);
-      return activeChannels;
-    } catch (error) {
-      console.error('Error fetching projectlist', error);
+      return (response.data.data || []).filter((channel: any) => channel.status === true);
+    } catch {
       return [];
     }
   };
+
   const fetchRecentUser = async () => {
     try {
       const response = await axios.get(`/api/team-member?action=lastSeenTime&user_id=${session?.user.id}`);
-      const newData = response.data;
-      console.log('newData from recent user', newData);
-      //setRecentUserIds(newData.senders);
-      return newData.senders;
-    } catch (error) {
-      console.error('Error fetching recent user', error);
+      return response.data.senders || [];
+    } catch {
       return [];
     }
-  }; 
-const updateAllChannels = (users: any, channels: any, groups:any, recentUserIds:any) => {
-    console.log("Inside update all channels", recentUserIds);
-    let recentUsers:any = [];
-    const matchingIds = recentUserIds.map(obj => obj.channel_id);
+  };
+const updateAllChannels = (users: any, channels: any, groups: any, recentUserIds: any) => {
+    const matchingIds = (recentUserIds || []).map((obj: any) => obj.channel_id);
+    let recentUsers: any[] = [];
 
-    // Filter items based on matching ids
-    const matchingDirectMessages = users.filter(item => matchingIds.includes([session?.user.id, item.userId].sort().join('-')));
+    const matchingDMs = users.filter((item: any) => matchingIds.includes([session?.user.id, item.userId].sort().join('-')));
+    const remainingDMs = users.filter((item: any) => !matchingIds.includes([session?.user.id, item.userId].sort().join('-')));
+    recentUsers = [...recentUsers, ...matchingDMs];
+    setDirectMessages(remainingDMs);
 
-    recentUsers = [...recentUsers, ...matchingDirectMessages];
-    // Remove matching items from the original items list
-    console.log("Before modifying direct messages", directMessages)
-    const remainingDirectMessages = users.filter(item => !matchingIds.includes([session?.user.id, item.userId].sort().join('-')));
-    setDirectMessages(remainingDirectMessages);
-    console.log("Remaining Direct messages:", remainingDirectMessages); 
-    const matchingChannelList = channels.filter(item => matchingIds.includes(item.id));
-    const remainingChannelList = channels.filter(item => !matchingIds.includes(item.id));
-    recentUsers = [...recentUsers, ...matchingChannelList];
-    setChannelsList(remainingChannelList);
+    const matchingChs = channels.filter((item: any) => matchingIds.includes(item.id));
+    const remainingChs = channels.filter((item: any) => !matchingIds.includes(item.id));
+    recentUsers = [...recentUsers, ...matchingChs];
+    setChannelsList(remainingChs);
 
-    const matchingGroupChats = groups.filter(item => matchingIds.includes(item.id));
-    const remainingGroupChats = groups.filter(item => !matchingIds.includes(item.id));
-    recentUsers = [...recentUsers, ...matchingGroupChats];
-    setGroupChats(remainingGroupChats);
+    const matchingGrps = groups.filter((item: any) => matchingIds.includes(item.id));
+    const remainingGrps = groups.filter((item: any) => !matchingIds.includes(item.id));
+    recentUsers = [...recentUsers, ...matchingGrps];
+    setGroupChats(remainingGrps);
 
     setRecentUsers(recentUsers);
-    console.log("Recent users:", recentUsers)
-}
-useEffect(() => {
-  const fetchInitialData = async () => {
-    const users = await fetchUsers();
-    const channels = await fetchChannelList();
-    const groups = await fetchChatGroup();
-    const recentUserIds = await fetchRecentUser();
-
-    updateAllChannels(users, channels, groups, recentUserIds); // Call the function after all states are updated
   };
 
-  fetchInitialData(); 
-}, []); 
+useEffect(() => {
+  // Fetch all sidebar data in parallel for fast initial load
+  const fetchInitialData = async () => {
+    const [users, channels, groups, recentUserIds] = await Promise.all([
+      fetchUsers(),
+      fetchChannelList(),
+      fetchChatGroup(),
+      fetchRecentUser(),
+    ]);
+    updateAllChannels(users, channels, groups, recentUserIds);
+  };
+
+  fetchInitialData();
+}, []);
 
  
   return (
